@@ -1191,18 +1191,20 @@ def register_routes(app):
         # Get recent attendance records
         recent_attendance = Attendance.query.filter_by(
             student_id=user.id
-        ).order_by(Attendance.date.desc()).limit(10).all()
+        ).order_by(Attendance.date.desc()).limit(5).all()
         
         # Get recent announcements
         recent_announcements = Announcement.query.filter(
             (Announcement.type == AnnouncementType.GENERAL) |
-            ((Announcement.type == AnnouncementType.SUBJECT) & (Announcement.subject_id.in_(subject_ids)))
+            (Announcement.type == AnnouncementType.SUBJECT) & (Announcement.subject_id.in_(subject_ids))
         ).order_by(Announcement.created_at.desc()).limit(5).all()
         
-        # Calculate attendance statistics
+        # Calculate attendance statistics for each subject
         attendance_stats = {}
+        total_present = 0
+        total_records = 0
+        
         for subject in enrolled_subjects:
-            # Query attendance by status for this subject
             stats = db.session.query(
                 Attendance.status,
                 db.func.count(Attendance.id)
@@ -1213,15 +1215,21 @@ def register_routes(app):
             
             # Convert to dictionary
             subject_stats = {status.value: 0 for status in AttendanceStatus}
-            total = 0
+            subject_total = 0
             for status, count in stats:
                 subject_stats[status.value] = count
-                total += count
+                subject_total += count
+                if status == AttendanceStatus.PRESENT:
+                    total_present += count
+                total_records += count
             
-            subject_stats['total'] = total
-            subject_stats['present_percentage'] = round((subject_stats['present'] / total) * 100, 2) if total > 0 else 0
+            subject_stats['total'] = subject_total
+            subject_stats['present_percentage'] = round((subject_stats['present'] / subject_total) * 100, 2) if subject_total > 0 else 0
             
             attendance_stats[subject.id] = subject_stats
+        
+        # Calculate overall attendance percentage
+        overall_attendance = round((total_present / total_records * 100), 2) if total_records > 0 else 0
         
         return render_template(
             'student/dashboard.html',
@@ -1230,7 +1238,8 @@ def register_routes(app):
             today_slots=today_slots,
             recent_attendance=recent_attendance,
             recent_announcements=recent_announcements,
-            attendance_stats=attendance_stats
+            attendance_stats=attendance_stats,
+            overall_attendance=overall_attendance
         )
     
     @app.route('/student/timetable')
