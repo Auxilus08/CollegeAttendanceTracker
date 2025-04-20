@@ -1255,11 +1255,36 @@ def register_routes(app):
         for day in DayOfWeek:
             timetable_by_day[day.value] = [slot for slot in all_slots if slot.day == day]
         
+        # Calculate attendance statistics
+        attendance_stats = {}
+        for subject in enrolled_subjects:
+            # Query attendance by status for this subject
+            stats = db.session.query(
+                Attendance.status,
+                db.func.count(Attendance.id)
+            ).filter(
+                Attendance.subject_id == subject.id,
+                Attendance.student_id == user.id
+            ).group_by(Attendance.status).all()
+            
+            # Convert to dictionary
+            subject_stats = {status.value: 0 for status in AttendanceStatus}
+            total = 0
+            for status, count in stats:
+                subject_stats[status.value] = count
+                total += count
+            
+            subject_stats['total'] = total
+            subject_stats['present_percentage'] = round((subject_stats['present'] / total) * 100, 2) if total > 0 else 0
+            
+            attendance_stats[subject.id] = subject_stats
+        
         return render_template(
             'student/timetable.html',
             user=user,
             timetable_by_day=timetable_by_day,
-            subjects=enrolled_subjects
+            subjects=enrolled_subjects,
+            attendance_stats=attendance_stats
         )
     
     @app.route('/student/attendance')
