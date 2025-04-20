@@ -1,0 +1,230 @@
+/* Custom styles for the attendance management system */
+
+/* Navbar customization */
+.navbar-brand {
+  font-weight: 700;
+}
+
+/* User role badge in navbar */
+.role-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  border-radius: 10px;
+}
+
+.role-badge-admin {
+  background-color: var(--bs-danger);
+  color: white;
+}
+
+.role-badge-teacher {
+  background-color: var(--bs-primary);
+  color: white;
+}
+
+.role-badge-student {
+  background-color: var(--bs-success);
+  color: white;
+}
+
+/* Dashboard stats cards */
+.stat-card {
+  transition: transform 0.2s;
+  border-radius: 0.5rem;
+  border-left: 5px solid;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-card-primary {
+  border-left-color: var(--bs-primary);
+}
+
+.stat-card-success {
+  border-left-color: var(--bs-success);
+}
+
+.stat-card-info {
+  border-left-color: var(--bs-info);
+}
+
+.stat-card-warning {
+  border-left-color: var(--bs-warning);
+}
+
+.stat-card-danger {
+  border-left-color: var(--bs-danger);
+}
+
+.stat-card .stat-icon {
+  font-size: 2rem;
+  opacity: 0.7;
+}
+
+/* Attendance status indicators */
+.attendance-status {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.attendance-status-present {
+  background-color: var(--bs-success);
+}
+
+.attendance-status-absent {
+  background-color: var(--bs-danger);
+}
+
+.attendance-status-late {
+  background-color: var(--bs-warning);
+}
+
+.attendance-status-excused {
+  background-color: var(--bs-info);
+}
+
+/* Timetable styling */
+.timetable-slot {
+  border-left: 4px solid var(--bs-primary);
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  transition: all 0.2s;
+}
+
+.timetable-slot:hover {
+  transform: translateX(5px);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.timetable-time {
+  font-weight: bold;
+  color: var(--bs-primary);
+}
+
+.timetable-room {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Announcement styling */
+.announcement-card {
+  transition: transform 0.2s;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+}
+
+.announcement-card:hover {
+  transform: translateY(-3px);
+}
+
+.announcement-general {
+  border-left: 4px solid var(--bs-primary);
+}
+
+.announcement-subject {
+  border-left: 4px solid var(--bs-success);
+}
+
+.announcement-class {
+  border-left: 4px solid var(--bs-info);
+}
+
+.announcement-date {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* Chart containers */
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive tables */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Login and register forms */
+.auth-form {
+  max-width: 400px;
+  margin: 2rem auto;
+}
+
+.auth-form .card {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.auth-form .card-header {
+  background-color: var(--bs-primary);
+  color: white;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.auth-form .form-control {
+  padding: 0.75rem;
+}
+
+/* Clickable rows */
+.table-clickable tbody tr {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.table-clickable tbody tr:hover {
+  background-color: rgba(var(--bs-info-rgb), 0.1);
+}
+
+/* General utility classes */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.opacity-75 {
+  opacity: 0.75;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+/* Modal customizations */
+.modal-header {
+  background-color: var(--bs-primary);
+  color: white;
+}
+
+.modal-footer {
+  border-top: none;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(var(--bs-dark-rgb), 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-primary-rgb), 0.5);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--bs-primary-rgb), 0.7);
+}

@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Student Dashboard</h1>
+        <p class="text-muted">Welcome, {{ user.full_name }} | Overview of your attendance and schedule</p>
+    </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row mb-4">
+    <div class="col-lg-4 mb-3">
+        <div class="card stat-card stat-card-primary h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h5 class="card-title">My Subjects</h5>
+                    <h2 class="mb-0">{{ subjects|length }}</h2>
+                </div>
+                <div class="ms-auto">
+                    <i class="fas fa-book stat-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-3">
+        <div class="card stat-card stat-card-success h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h5 class="card-title">Overall Attendance</h5>
+                    {% set total_present = 0 %}
+                    {% set total_records = 0 %}
+                    
+                    {% for subject_id, stats in attendance_stats.items() %}
+                        {% set total_present = total_present + stats.present %}
+                        {% set total_records = total_records + stats.total %}
+                    {% endfor %}
+                    
+                    {% set overall_percentage = (total_present / total_records * 100)|round(2) if total_records > 0 else 0 %}
+                    <h2 class="mb-0">{{ overall_percentage }}%</h2>
+                </div>
+                <div class="ms-auto">
+                    <i class="fas fa-clipboard-check stat-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-3">
+        <div class="card stat-card stat-card-warning h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h5 class="card-title">Today's Classes</h5>
+                    <h2 class="mb-0">{{ today_slots|length }}</h2>
+                </div>
+                <div class="ms-auto">
+                    <i class="fas fa-calendar-day stat-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Today's schedule -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Today's Schedule</h5>
+            </div>
+            <div class="card-body">
+                {% if today_slots %}
+                    <div class="list-group">
+                        {% for slot in today_slots %}
+                            <div class="timetable-slot">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="timetable-time">{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</span>
+                                        <h6 class="mb-1">{{ slot.subject.name }}</h6>
+                                        <p class="mb-0 text-muted">
+                                            <span class="timetable-room">{{ slot.room or 'No room assigned' }}</span> | 
+                                            <small>{{ slot.subject.code }}</small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                        <p>No classes scheduled for today</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent text-center">
+                <a href="{{ url_for('student_timetable') }}" class="btn btn-info">
+                    <i class="fas fa-calendar-alt me-1"></i> View Full Timetable
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent attendance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Attendance</h5>
+                <a href="{{ url_for('student_attendance') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_attendance %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in recent_attendance %}
+                                    <tr>
+                                        <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ attendance.subject.name }}</td>
+                                        <td>
+                                            {% if attendance.status.value == 'present' %}
+                                                <span class="badge bg-success">Present</span>
+                                            {% elif attendance.status.value == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% elif attendance.status.value == 'late' %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% elif attendance.status.value == 'excused' %}
+                                                <span class="badge bg-info">Excused</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p>No recent attendance records</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Attendance chart -->
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Attendance by Subject</h5>
+            </div>
+            <div class="card-body">
+                {% if subjects %}
+                    <div class="chart-container">
+                        <canvas id="subject-attendance-chart" data-stats="{{ attendance_stats|tojson }}"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                        <p>No data available for statistics</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent announcements -->
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Recent Announcements</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_announcements %}
+                    <div class="list-group">
+                        {% for announcement in recent_announcements %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ announcement.title }}</h6>
+                                    <small>{{ announcement.created_at.strftime('%d %b, %Y') }}</small>
+                                </div>
+                                <p class="mb-1 text-truncate">{{ announcement.content }}</p>
+                                <small>
+                                    {% if announcement.type.value == 'general' %}
+                                        <span class="badge bg-primary">General</span>
+                                    {% elif announcement.type.value == 'subject' %}
+                                        <span class="badge bg-success">{{ announcement.subject.name }}</span>
+                                    {% elif announcement.type.value == 'class' %}
+                                        <span class="badge bg-info">Class</span>
+                                    {% endif %}
+                                    by {{ announcement.creator.full_name }}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <p>No recent announcements</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

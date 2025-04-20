@@ -1,0 +1,164 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">My Teaching Timetable</h1>
+        <p class="text-muted">View your weekly teaching schedule</p>
+    </div>
+</div>
+
+<!-- Week navigation -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-center">
+                    <div class="btn-group" role="group" aria-label="Day navigation">
+                        {% for day in timetable_by_day %}
+                            <button type="button" class="btn btn-outline-primary timetable-nav-btn" data-day="{{ day|lower }}">
+                                {{ day }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Timetable display -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Class Schedule</h5>
+            </div>
+            
+            <!-- Days of the week -->
+            {% for day, slots in timetable_by_day.items() %}
+                <div id="timetable-{{ day|lower }}" class="timetable-day d-none">
+                    <div class="card-body">
+                        {% if slots %}
+                            <div class="list-group">
+                                {% for slot in slots %}
+                                    <div class="timetable-slot">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <span class="timetable-time">{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</span>
+                                                <h5 class="mb-1">{{ slot.subject.name }}</h5>
+                                                <p class="mb-0 text-muted">
+                                                    <span class="timetable-room">{{ slot.room or 'No room assigned' }}</span> | 
+                                                    <small>{{ slot.subject.code }}</small>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <a href="{{ url_for('teacher_attendance', slot_id=slot.id, date=now.strftime('%Y-%m-%d')) }}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                                <p>No classes scheduled for {{ day }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Weekly overview -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Weekly Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 10%">Time</th>
+                                {% for day in timetable_by_day %}
+                                    {% if day != 'Sunday' %}
+                                        <th style="width: 18%">{{ day }}</th>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hour in range(8, 18) %}
+                                <tr>
+                                    <td class="text-center fw-bold">{{ '%02d' % hour }}:00</td>
+                                    {% for day in timetable_by_day %}
+                                        {% if day != 'Sunday' %}
+                                            <td>
+                                                {% set day_slots = timetable_by_day[day] %}
+                                                {% for slot in day_slots %}
+                                                    {% if slot.start_time.hour <= hour and slot.end_time.hour > hour %}
+                                                        <div class="p-1 rounded bg-primary bg-opacity-25 border border-primary mb-1">
+                                                            <small>
+                                                                <strong>{{ slot.subject.code }}</strong><br>
+                                                                {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}<br>
+                                                                <em>{{ slot.room or 'No room' }}</em>
+                                                            </small>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject legend -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">My Subjects</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for subject in subjects %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ subject.name }}</h5>
+                                    <h6 class="card-subtitle text-muted">{{ subject.code }}</h6>
+                                    <p class="card-text mt-2">
+                                        {% if subject.description %}
+                                            {{ subject.description }}
+                                        {% else %}
+                                            <em class="text-muted">No description available</em>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

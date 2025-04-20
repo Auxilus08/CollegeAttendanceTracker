@@ -1,0 +1,210 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">Manage Attendance</h1>
+            <p class="text-muted">Mark and view attendance for your classes</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filter section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Select Class to Mark Attendance</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('teacher_attendance') }}" method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="slot_id" class="form-label">Timetable Slot</label>
+                        <select class="form-select" id="slot-select" name="slot_id" data-submit-on-change>
+                            <option value="">Select a slot</option>
+                            {% for slot in timetable_slots %}
+                                <option value="{{ slot.id }}" {% if selected_slot_id|int == slot.id %}selected{% endif %}>
+                                    {{ slot.day.value }} | {{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }} | 
+                                    {{ slot.subject.name }} | Room: {{ slot.room or 'N/A' }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="attendance-date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="attendance-date" name="date" value="{{ selected_date }}" data-submit-on-change>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mark attendance form -->
+{% if selected_slot_id %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Mark Attendance</h5>
+                <div>
+                    <button type="button" id="mark-all-present" class="btn btn-sm btn-success me-1">
+                        <i class="fas fa-check-circle me-1"></i> All Present
+                    </button>
+                    <button type="button" id="mark-all-absent" class="btn btn-sm btn-danger me-1">
+                        <i class="fas fa-times-circle me-1"></i> All Absent
+                    </button>
+                    <button type="button" id="reset-all-statuses" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-sync-alt me-1"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% set timetable_slot = timetable_slots|selectattr('id', 'eq', selected_slot_id|int)|first %}
+                {% if timetable_slot %}
+                    {% set subject_id = timetable_slot.subject_id %}
+                    {% set students = subject_students.get(subject_id, []) %}
+                    
+                    {% if students %}
+                        <form action="{{ url_for('teacher_attendance') }}" method="POST">
+                            <input type="hidden" name="action" value="mark_attendance">
+                            <input type="hidden" name="timetable_slot_id" value="{{ timetable_slot.id }}">
+                            <input type="hidden" name="date" value="{{ selected_date }}">
+                            
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Marking attendance for: 
+                                    <strong>{{ timetable_slot.subject.name }}</strong> | 
+                                    {{ timetable_slot.day.value }} | 
+                                    {{ timetable_slot.start_time.strftime('%H:%M') }} - {{ timetable_slot.end_time.strftime('%H:%M') }} | 
+                                    Room: {{ timetable_slot.room or 'N/A' }} | 
+                                    Date: {{ selected_date }}
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Status</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for student in students %}
+                                            <tr>
+                                                <td>
+                                                    {{ student.full_name }}
+                                                    <input type="hidden" name="student_ids" value="{{ student.id }}">
+                                                </td>
+                                                <td>
+                                                    {% set attendance_record = attendance_records.get(student.id) %}
+                                                    <select class="form-select" name="statuses">
+                                                        <option value="" disabled {% if not attendance_record %}selected{% endif %}>Select status</option>
+                                                        <option value="present" {% if attendance_record and attendance_record.status.value == 'present' %}selected{% endif %}>Present</option>
+                                                        <option value="absent" {% if attendance_record and attendance_record.status.value == 'absent' %}selected{% endif %}>Absent</option>
+                                                        <option value="late" {% if attendance_record and attendance_record.status.value == 'late' %}selected{% endif %}>Late</option>
+                                                        <option value="excused" {% if attendance_record and attendance_record.status.value == 'excused' %}selected{% endif %}>Excused</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control" name="notes" placeholder="Optional notes" value="{{ attendance_record.notes if attendance_record else '' }}">
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="text-end mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> Save Attendance
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                            <p>No students are enrolled in this subject</p>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                <h4>Select a timetable slot to mark attendance</h4>
+                <p class="text-muted">Choose a subject and date from the form above</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent attendance records -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">View Recent Attendance Records</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('teacher_attendance') }}" method="GET" class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label for="filter-subject" class="form-label">Filter by Subject</label>
+                        <select class="form-select" id="filter-subject" name="filter_subject_id" data-submit-on-change>
+                            <option value="">All Subjects</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}" {% if request.args.get('filter_subject_id')|int == subject.id %}selected{% endif %}>
+                                    {{ subject.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter-date" class="form-label">Filter by Date</label>
+                        <input type="date" class="form-control" id="filter-date" name="filter_date" value="{{ request.args.get('filter_date', '') }}" data-submit-on-change>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter-status" class="form-label">Filter by Status</label>
+                        <select class="form-select" id="filter-status" name="filter_status" data-submit-on-change>
+                            <option value="">All Statuses</option>
+                            {% for status in attendance_statuses %}
+                                <option value="{{ status.value }}" {% if request.args.get('filter_status') == status.value %}selected{% endif %}>
+                                    {{ status.value|capitalize }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <a href="{{ url_for('teacher_attendance') }}" class="btn btn-secondary w-100">
+                            <i class="fas fa-sync-alt me-1"></i> Reset
+                        </a>
+                    </div>
+                </form>
+                
+                <!-- Table will be populated with AJAX or server-side rendering -->
+                <div id="attendance-records-container">
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p>Select filters to view attendance records</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+{% endblock %}

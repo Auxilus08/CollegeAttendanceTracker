@@ -1,0 +1,204 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">My Attendance Records</h1>
+        <p class="text-muted">View and monitor your attendance statistics</p>
+    </div>
+</div>
+
+<!-- Filter section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Filter Attendance Records</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('student_attendance') }}" method="GET" id="attendance-filter-form" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id" data-submit-on-change>
+                            <option value="">All Subjects</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}" {% if request.args.get('subject_id')|int == subject.id %}selected{% endif %}>
+                                    {{ subject.name }} ({{ subject.code }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}" data-submit-on-change>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}" data-submit-on-change>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <a href="{{ url_for('student_attendance') }}" class="btn btn-secondary w-100">
+                            <i class="fas fa-sync-alt me-1"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall attendance statistics -->
+<div class="row mb-4">
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Overall Attendance Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="attendance-summary-chart" 
+                           data-stats="{{ overall_stats|tojson }}"
+                           height="250"></canvas>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div class="d-flex align-items-center mx-3">
+                        <span class="attendance-status attendance-status-present"></span>
+                        <span>Present ({{ overall_stats.present }})</span>
+                    </div>
+                    <div class="d-flex align-items-center mx-3">
+                        <span class="attendance-status attendance-status-absent"></span>
+                        <span>Absent ({{ overall_stats.absent }})</span>
+                    </div>
+                    <div class="d-flex align-items-center mx-3">
+                        <span class="attendance-status attendance-status-late"></span>
+                        <span>Late ({{ overall_stats.late }})</span>
+                    </div>
+                    <div class="d-flex align-items-center mx-3">
+                        <span class="attendance-status attendance-status-excused"></span>
+                        <span>Excused ({{ overall_stats.excused }})</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <p class="mb-0 text-center">
+                    <strong>Overall Attendance Rate: {{ overall_stats.present_percentage }}%</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Attendance by Subject</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="subject-attendance-chart" 
+                           data-stats="{{ subject_stats|tojson }}"
+                           height="250"></canvas>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th class="text-center">Present</th>
+                                <th class="text-center">Absent</th>
+                                <th class="text-center">Late</th>
+                                <th class="text-center">Excused</th>
+                                <th class="text-center">Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subject in subjects %}
+                                {% set stats = subject_stats.get(subject.id, {}) %}
+                                <tr>
+                                    <td>{{ subject.name }}</td>
+                                    <td class="text-center">{{ stats.get('present', 0) }}</td>
+                                    <td class="text-center">{{ stats.get('absent', 0) }}</td>
+                                    <td class="text-center">{{ stats.get('late', 0) }}</td>
+                                    <td class="text-center">{{ stats.get('excused', 0) }}</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if stats.get('present_percentage', 0) >= 75 %}bg-success{% elif stats.get('present_percentage', 0) >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ stats.get('present_percentage', 0) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance records table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Attendance Records</h5>
+                {% if attendance_records %}
+                    <span class="badge bg-primary">{{ attendance_records|length }} records</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if attendance_records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Subject</th>
+                                    <th>Time</th>
+                                    <th>Room</th>
+                                    <th>Status</th>
+                                    <th>Marked By</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in attendance_records %}
+                                    <tr>
+                                        <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ attendance.subject.name }}</td>
+                                        <td>{{ attendance.timetable_slot.start_time.strftime('%H:%M') }} - {{ attendance.timetable_slot.end_time.strftime('%H:%M') }}</td>
+                                        <td>{{ attendance.timetable_slot.room or 'N/A' }}</td>
+                                        <td>
+                                            {% if attendance.status.value == 'present' %}
+                                                <span class="badge bg-success">Present</span>
+                                            {% elif attendance.status.value == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% elif attendance.status.value == 'late' %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% elif attendance.status.value == 'excused' %}
+                                                <span class="badge bg-info">Excused</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ attendance.marked_by.full_name }}</td>
+                                        <td>{{ attendance.notes or '-' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h4>No attendance records found</h4>
+                        <p class="text-muted">No records match your filter criteria or no attendance has been marked yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+{% endblock %}

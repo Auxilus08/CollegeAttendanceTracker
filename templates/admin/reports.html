@@ -1,0 +1,381 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Attendance Reports</h1>
+        <p class="text-muted">Generate and view attendance statistics</p>
+    </div>
+</div>
+
+<!-- Report filters -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Report Filters</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin_attendance_report') }}" method="GET" id="attendance-filter-form" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id">
+                            <option value="">All Subjects</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}" {% if request.args.get('subject_id')|int == subject.id %}selected{% endif %}>
+                                    {{ subject.name }} ({{ subject.code }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="student_id" class="form-label">Student</label>
+                        <select class="form-select" id="student_id" name="student_id">
+                            <option value="">All Students</option>
+                            {% for student in students %}
+                                <option value="{{ student.id }}" {% if request.args.get('student_id')|int == student.id %}selected{% endif %}>
+                                    {{ student.full_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                    </div>
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Generate Report
+                                </button>
+                                <a href="{{ url_for('admin_reports') }}" class="btn btn-secondary ms-2">
+                                    <i class="fas fa-sync-alt me-1"></i> Reset Filters
+                                </a>
+                            </div>
+                            <div>
+                                <div class="btn-group" role="group">
+                                    <button type="submit" class="btn btn-success" name="format" value="csv">
+                                        <i class="fas fa-file-csv me-1"></i> Export as CSV
+                                    </button>
+                                    <button type="submit" class="btn btn-info" name="format" value="chart">
+                                        <i class="fas fa-chart-bar me-1"></i> View as Chart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report results -->
+{% if show_report and attendances %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Attendance Records</h5>
+                <span class="badge bg-primary">{{ attendances|length }} records</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Slot Time</th>
+                                <th>Room</th>
+                                <th>Marked By</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attendance in attendances %}
+                                <tr>
+                                    <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ attendance.user.full_name }}</td>
+                                    <td>{{ attendance.subject.name }} ({{ attendance.subject.code }})</td>
+                                    <td>
+                                        {% if attendance.status.value == 'present' %}
+                                            <span class="badge bg-success">Present</span>
+                                        {% elif attendance.status.value == 'absent' %}
+                                            <span class="badge bg-danger">Absent</span>
+                                        {% elif attendance.status.value == 'late' %}
+                                            <span class="badge bg-warning">Late</span>
+                                        {% elif attendance.status.value == 'excused' %}
+                                            <span class="badge bg-info">Excused</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ attendance.timetable_slot.start_time.strftime('%H:%M') }} - {{ attendance.timetable_slot.end_time.strftime('%H:%M') }}</td>
+                                    <td>{{ attendance.timetable_slot.room or 'N/A' }}</td>
+                                    <td>{{ attendance.marked_by.full_name }}</td>
+                                    <td>{{ attendance.notes or '-' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Attendance Summary</h5>
+            </div>
+            <div class="card-body">
+                {% set present_count = attendances|selectattr('status.value', 'eq', 'present')|list|length %}
+                {% set absent_count = attendances|selectattr('status.value', 'eq', 'absent')|list|length %}
+                {% set late_count = attendances|selectattr('status.value', 'eq', 'late')|list|length %}
+                {% set excused_count = attendances|selectattr('status.value', 'eq', 'excused')|list|length %}
+                {% set total_count = attendances|length %}
+                {% set present_percentage = (present_count / total_count * 100)|round(2) if total_count > 0 else 0 %}
+                
+                <div class="chart-container">
+                    <canvas id="attendance-summary-chart"></canvas>
+                </div>
+                
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Status</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="attendance-status attendance-status-present"></span> Present</td>
+                                <td>{{ present_count }}</td>
+                                <td>{{ present_percentage }}%</td>
+                            </tr>
+                            <tr>
+                                <td><span class="attendance-status attendance-status-absent"></span> Absent</td>
+                                <td>{{ absent_count }}</td>
+                                <td>{{ (absent_count / total_count * 100)|round(2) if total_count > 0 else 0 }}%</td>
+                            </tr>
+                            <tr>
+                                <td><span class="attendance-status attendance-status-late"></span> Late</td>
+                                <td>{{ late_count }}</td>
+                                <td>{{ (late_count / total_count * 100)|round(2) if total_count > 0 else 0 }}%</td>
+                            </tr>
+                            <tr>
+                                <td><span class="attendance-status attendance-status-excused"></span> Excused</td>
+                                <td>{{ excused_count }}</td>
+                                <td>{{ (excused_count / total_count * 100)|round(2) if total_count > 0 else 0 }}%</td>
+                            </tr>
+                            <tr class="table-active">
+                                <td><strong>Total</strong></td>
+                                <td><strong>{{ total_count }}</strong></td>
+                                <td>100%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Attendance by Subject</h5>
+            </div>
+            <div class="card-body">
+                {% set subjects_data = {} %}
+                {% for attendance in attendances %}
+                    {% set subject_name = attendance.subject.name %}
+                    {% if subject_name not in subjects_data %}
+                        {% set _ = subjects_data.update({subject_name: {'present': 0, 'absent': 0, 'late': 0, 'excused': 0, 'total': 0}}) %}
+                    {% endif %}
+                    {% set _ = subjects_data[subject_name].update({attendance.status.value: subjects_data[subject_name][attendance.status.value] + 1}) %}
+                    {% set _ = subjects_data[subject_name].update({'total': subjects_data[subject_name]['total'] + 1}) %}
+                {% endfor %}
+                
+                <div class="chart-container">
+                    <canvas id="subject-attendance-chart"></canvas>
+                </div>
+                
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Subject</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                                <th>Late</th>
+                                <th>Excused</th>
+                                <th>Present %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subject, data in subjects_data.items() %}
+                                <tr>
+                                    <td>{{ subject }}</td>
+                                    <td>{{ data.present }}</td>
+                                    <td>{{ data.absent }}</td>
+                                    <td>{{ data.late }}</td>
+                                    <td>{{ data.excused }}</td>
+                                    <td>{{ (data.present / data.total * 100)|round(2) if data.total > 0 else 0 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% elif show_report %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4>No attendance records found with the selected filters</h4>
+                <p class="text-muted">Try adjusting your filters or selecting a different date range</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                <h4>Select filters and generate a report</h4>
+                <p class="text-muted">Use the form above to filter attendance data and view reports</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if show_report and attendances %}
+            // Create attendance summary chart
+            const summaryCtx = document.getElementById('attendance-summary-chart').getContext('2d');
+            new Chart(summaryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Present', 'Absent', 'Late', 'Excused'],
+                    datasets: [{
+                        data: [
+                            {{ present_count }}, 
+                            {{ absent_count }}, 
+                            {{ late_count }}, 
+                            {{ excused_count }}
+                        ],
+                        backgroundColor: [
+                            '#28a745', // green - present
+                            '#dc3545', // red - absent
+                            '#ffc107', // yellow - late
+                            '#17a2b8'  // cyan - excused
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+            
+            // Create subject attendance chart
+            const subjectCtx = document.getElementById('subject-attendance-chart').getContext('2d');
+            
+            const subjectData = {
+                labels: [
+                    {% for subject, data in subjects_data.items() %}
+                        "{{ subject }}",
+                    {% endfor %}
+                ],
+                datasets: [
+                    {
+                        label: 'Present',
+                        data: [
+                            {% for subject, data in subjects_data.items() %}
+                                {{ data.present }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: '#28a745',
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Absent',
+                        data: [
+                            {% for subject, data in subjects_data.items() %}
+                                {{ data.absent }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: '#dc3545',
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Late',
+                        data: [
+                            {% for subject, data in subjects_data.items() %}
+                                {{ data.late }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: '#ffc107',
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Excused',
+                        data: [
+                            {% for subject, data in subjects_data.items() %}
+                                {{ data.excused }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: '#17a2b8',
+                        stack: 'Stack 0'
+                    }
+                ]
+            };
+            
+            new Chart(subjectCtx, {
+                type: 'bar',
+                data: subjectData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">Announcements</h1>
+            <p class="text-muted">Create and manage announcements for your subjects</p>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">
+            <i class="fas fa-plus me-1"></i> New Announcement
+        </button>
+    </div>
+</div>
+
+<!-- Filter and search -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form action="{{ url_for('teacher_announcements') }}" method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" placeholder="Search by title or content" name="search" value="{{ request.args.get('search', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="type" data-submit-on-change>
+                            <option value="">All types</option>
+                            {% for type in announcement_types %}
+                                <option value="{{ type.value }}" {% if request.args.get('type') == type.value %}selected{% endif %}>
+                                    {{ type.value|capitalize }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ url_for('teacher_announcements') }}" class="btn btn-secondary w-100">
+                            <i class="fas fa-sync-alt me-1"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Announcements list -->
+<div class="row">
+    <div class="col-md-12">
+        {% if announcements %}
+            {% for announcement in announcements %}
+                <div class="card mb-3 announcement-card {% if announcement.type.value == 'general' %}announcement-general{% elif announcement.type.value == 'subject' %}announcement-subject{% elif announcement.type.value == 'class' %}announcement-class{% endif %}">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">{{ announcement.title }}</h5>
+                            <div class="announcement-date">
+                                <i class="fas fa-clock me-1"></i> {{ announcement.created_at.strftime('%d %b, %Y at %H:%M') }}
+                                <i class="fas fa-user ms-2 me-1"></i> {{ announcement.creator.full_name }}
+                            </div>
+                        </div>
+                        <div>
+                            {% if announcement.type.value == 'general' %}
+                                <span class="badge bg-primary">General</span>
+                            {% elif announcement.type.value == 'subject' %}
+                                <span class="badge bg-success">{{ announcement.subject.name }}</span>
+                            {% elif announcement.type.value == 'class' %}
+                                <span class="badge bg-info">Class</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ announcement.content }}</p>
+                    </div>
+                    <div class="card-footer bg-transparent d-flex justify-content-end">
+                        {% if announcement.creator_id == user.id %}
+                            <button type="button" class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal-{{ announcement.id }}">
+                                <i class="fas fa-edit me-1"></i> Edit
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal-{{ announcement.id }}">
+                                <i class="fas fa-trash-alt me-1"></i> Delete
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Edit Announcement Modal -->
+                {% if announcement.creator_id == user.id %}
+                    <div class="modal fade" id="editAnnouncementModal-{{ announcement.id }}" tabindex="-1" aria-labelledby="editAnnouncementModalLabel-{{ announcement.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editAnnouncementModalLabel-{{ announcement.id }}">Edit Announcement</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="{{ url_for('teacher_announcements') }}" method="POST">
+                                    <div class="modal-body">
+                                        <input type="hidden" name="action" value="edit">
+                                        <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
+                                        
+                                        <div class="mb-3">
+                                            <label for="title-{{ announcement.id }}" class="form-label">Title</label>
+                                            <input type="text" class="form-control" id="title-{{ announcement.id }}" name="title" value="{{ announcement.title }}" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="content-{{ announcement.id }}" class="form-label">Content</label>
+                                            <textarea class="form-control" id="content-{{ announcement.id }}" name="content" rows="5" required>{{ announcement.content }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Announcement Modal -->
+                    <div class="modal fade" id="deleteAnnouncementModal-{{ announcement.id }}" tabindex="-1" aria-labelledby="deleteAnnouncementModalLabel-{{ announcement.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title" id="deleteAnnouncementModalLabel-{{ announcement.id }}">Confirm Deletion</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete the announcement <strong>"{{ announcement.title }}"</strong>?</p>
+                                    <p class="text-danger mb-0"><i class="fas fa-exclamation-triangle me-1"></i> This action cannot be undone.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <form action="{{ url_for('teacher_announcements') }}" method="POST">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="announcement_id" value="{{ announcement.id }}">
+                                        <button type="submit" class="btn btn-danger">Delete Announcement</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                    <h4>No announcements found</h4>
+                    <p class="text-muted">Create your first announcement by clicking the button above</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Announcement Modal -->
+<div class="modal fade" id="createAnnouncementModal" tabindex="-1" aria-labelledby="createAnnouncementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createAnnouncementModalLabel">Create New Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('teacher_announcements') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="create">
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Content</label>
+                        <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Announcement Type</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="" disabled selected>-- Select Type --</option>
+                            {% for type in announcement_types %}
+                                <option value="{{ type.value }}">{{ type.value|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3" id="subject-container">
+                        <label for="subject_id" class="form-label">Subject</label>
+                        <select class="form-select" id="subject_id" name="subject_id">
+                            <option value="">-- Select Subject --</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.code }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Required for subject-specific announcements.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Announcement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show/hide subject field based on announcement type
+        const typeSelect = document.getElementById('type');
+        const subjectContainer = document.getElementById('subject-container');
+        
+        if (typeSelect && subjectContainer) {
+            function toggleSubjectField() {
+                if (typeSelect.value === 'subject') {
+                    subjectContainer.style.display = 'block';
+                } else {
+                    subjectContainer.style.display = 'none';
+                }
+            }
+            
+            toggleSubjectField(); // Initial state
+            typeSelect.addEventListener('change', toggleSubjectField);
+        }
+    });
+</script>
+{% endblock %}

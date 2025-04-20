@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Teacher Dashboard</h1>
+        <p class="text-muted">Welcome, {{ user.full_name }} | Overview of your classes and students</p>
+    </div>
+</div>
+
+<!-- Stats and quick links -->
+<div class="row mb-4">
+    <!-- My subjects card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">My Subjects</h5>
+            </div>
+            <div class="card-body">
+                {% if subjects %}
+                    <div class="list-group">
+                        {% for subject in subjects %}
+                            <a href="{{ url_for('teacher_attendance', subject_id=subject.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ subject.name }}</strong>
+                                    <small class="d-block text-muted">{{ subject.code }}</small>
+                                </div>
+                                {% set stats = attendance_stats.get(subject.id, {}) %}
+                                <span class="badge bg-primary rounded-pill">
+                                    {{ stats.get('present_percentage', 0) }}% attendance
+                                </span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                        <p>No subjects assigned to you yet</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent text-center">
+                <a href="{{ url_for('teacher_attendance') }}" class="btn btn-primary">
+                    <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Today's schedule -->
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Today's Schedule</h5>
+            </div>
+            <div class="card-body">
+                {% if today_slots %}
+                    <div class="list-group">
+                        {% for slot in today_slots %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ slot.subject.name }}</h6>
+                                    <small>{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}</small>
+                                </div>
+                                <p class="mb-1">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i> {{ slot.room or 'No room assigned' }}
+                                    </small>
+                                </p>
+                                <a href="{{ url_for('teacher_attendance', slot_id=slot.id, date=now.strftime('%Y-%m-%d')) }}" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-day fa-3x text-muted mb-3"></i>
+                        <p>No classes scheduled for today</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent text-center">
+                <a href="{{ url_for('teacher_timetable') }}" class="btn btn-info">
+                    <i class="fas fa-calendar-alt me-1"></i> View Full Timetable
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick actions -->
+    <div class="col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('teacher_attendance') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-clipboard-check me-1"></i> Mark Attendance
+                    </a>
+                    <a href="{{ url_for('teacher_announcements') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-bullhorn me-1"></i> Post Announcement
+                    </a>
+                    <a href="{{ url_for('teacher_timetable') }}" class="btn btn-info btn-lg">
+                        <i class="fas fa-calendar-alt me-1"></i> View Timetable
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent attendance records -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Attendance Records</h5>
+                <a href="{{ url_for('teacher_attendance') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_attendance %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in recent_attendance %}
+                                    <tr>
+                                        <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ attendance.user.full_name }}</td>
+                                        <td>{{ attendance.subject.name }}</td>
+                                        <td>
+                                            {% if attendance.status.value == 'present' %}
+                                                <span class="badge bg-success">Present</span>
+                                            {% elif attendance.status.value == 'absent' %}
+                                                <span class="badge bg-danger">Absent</span>
+                                            {% elif attendance.status.value == 'late' %}
+                                                <span class="badge bg-warning">Late</span>
+                                            {% elif attendance.status.value == 'excused' %}
+                                                <span class="badge bg-info">Excused</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <p>No recent attendance records</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent announcements -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Announcements</h5>
+                <a href="{{ url_for('teacher_announcements') }}" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_announcements %}
+                    <div class="list-group">
+                        {% for announcement in recent_announcements %}
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ announcement.title }}</h6>
+                                    <small>{{ announcement.created_at.strftime('%d %b, %Y') }}</small>
+                                </div>
+                                <p class="mb-1 text-truncate">{{ announcement.content }}</p>
+                                <small>
+                                    {% if announcement.type.value == 'general' %}
+                                        <span class="badge bg-primary">General</span>
+                                    {% elif announcement.type.value == 'subject' %}
+                                        <span class="badge bg-success">{{ announcement.subject.name }}</span>
+                                    {% elif announcement.type.value == 'class' %}
+                                        <span class="badge bg-info">Class</span>
+                                    {% endif %}
+                                    by {{ announcement.creator.full_name }}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <p>No recent announcements</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent text-center">
+                <a href="{{ url_for('teacher_announcements') }}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i> Create Announcement
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance statistics -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0">Attendance Statistics by Subject</h5>
+            </div>
+            <div class="card-body">
+                {% if subjects %}
+                    <div class="chart-container">
+                        <canvas id="subject-attendance-chart" data-subjects="{{ attendance_stats|tojson }}"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                        <p>No data available for statistics</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
