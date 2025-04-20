@@ -29,7 +29,16 @@
             <div class="card-body d-flex align-items-center">
                 <div>
                     <h5 class="card-title">Overall Attendance</h5>
-                    <h2 class="mb-0">{{ overall_attendance }}%</h2>
+                    {% set total_present = 0 %}
+                    {% set total_records = 0 %}
+                    
+                    {% for subject_id, stats in attendance_stats.items() %}
+                        {% set total_present = total_present + stats.present %}
+                        {% set total_records = total_records + stats.total %}
+                    {% endfor %}
+                    
+                    {% set overall_percentage = (total_present / total_records * 100)|round(2) if total_records > 0 else 0 %}
+                    <h2 class="mb-0">{{ overall_percentage }}%</h2>
                 </div>
                 <div class="ms-auto">
                     <i class="fas fa-clipboard-check stat-icon text-success"></i>

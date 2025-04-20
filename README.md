@@ -1,60 +1,124 @@
 # College Attendance Tracker
 
-A web-based attendance management system for colleges built with Flask and SQLite.
+A Flask-based web application for managing college attendance with role-based access control and real-time analytics.
 
 ## Features
 
-- Multi-user roles (Admin, Teacher, Student)
-- Real-time attendance tracking
-- Subject-wise attendance statistics
-- Timetable management
-- Announcements system
-- Dashboard with attendance analytics
+### For Students
+- View personal attendance statistics
+- Check subject-wise attendance percentage
+- See today's class schedule
+- View recent attendance records
+- Get real-time updates on attendance status
+- Access announcements from teachers and admin
 
-## Setup
+### For Teachers
+- Mark attendance for assigned classes
+- View class-wise attendance reports
+- Create and manage announcements
+- Track student attendance patterns
+- Generate attendance reports
 
-1. Create a virtual environment:
+### For Administrators
+- Manage users (students, teachers)
+- Configure subjects and classes
+- Set up timetables
+- Monitor overall attendance statistics
+- System-wide announcements
+- User role management
+
+## Tech Stack
+
+- **Backend**: Python Flask
+- **Database**: SQLite
+- **Frontend**: HTML5, CSS3, JavaScript
+- **UI Framework**: Bootstrap 5
+- **Charts**: Chart.js
+- **Authentication**: JWT (JSON Web Tokens)
+
+## Installation
+
+1. Clone the repository:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+git clone https://github.com/yourusername/CollegeAttendanceTracker.git
+cd CollegeAttendanceTracker
 ```
 
-2. Install dependencies:
+2. Create and activate virtual environment:
+```bash
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On Unix or MacOS:
+source venv/bin/activate
+```
+
+3. Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Initialize the database:
+4. Initialize the database:
 ```bash
 python init_db.py
 python create_initial_users.py
 ```
 
-4. Run the application:
+5. Run the application:
 ```bash
 python main.py
 ```
 
-## Default Users
+6. Access the application at: `http://localhost:5000`
 
-The system comes with three default users:
+## Default Login Credentials
 
-1. Admin:
-   - Email: admin@example.com
-   - Password: admin123
+### Admin Account
+- Email: admin@example.com
+- Password: admin123
 
-2. Teacher:
-   - Email: teacher@example.com
-   - Password: teacher123
+### Teacher Account
+- Email: teacher@example.com
+- Password: teacher123
 
-3. Student:
-   - Email: student@example.com
-   - Password: student123
+### Student Account
+- Email: student@example.com
+- Password: student123
 
-## Technologies Used
+## Project Structure
 
-- Backend: Flask (Python)
-- Database: SQLite
-- Frontend: HTML, CSS (Bootstrap), JavaScript
-- Charts: Chart.js
-- Authentication: JWT
+```
+CollegeAttendanceTracker/
+├── app.py              # Application initialization
+├── routes.py           # All route definitions
+├── models.py           # Database models
+├── init_db.py         # Database initialization
+├── static/
+│   ├── css/          # Stylesheets
+│   ├── js/           # JavaScript files
+│   └── images/       # Image assets
+├── templates/
+│   ├── admin/        # Admin panel templates
+│   ├── teacher/      # Teacher dashboard templates
+│   └── student/      # Student dashboard templates
+└── instance/
+    └── attendance.db  # SQLite database
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Flask documentation and community
+- Bootstrap team for the excellent UI framework
+- Chart.js for the visualization components
