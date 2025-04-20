@@ -100,12 +100,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Render overall attendance summary chart
 function renderAttendanceSummaryChart(chartElement) {
-  // Get data from the data attribute
-  const chartDataStr = chartElement.getAttribute('data-stats');
-  if (!chartDataStr) return;
-  
   try {
-    const chartData = JSON.parse(chartDataStr);
+    // Create a data object from the individual data attributes
+    const chartData = {
+      present: parseInt(chartElement.getAttribute('data-present') || 0),
+      absent: parseInt(chartElement.getAttribute('data-absent') || 0),
+      late: parseInt(chartElement.getAttribute('data-late') || 0),
+      excused: parseInt(chartElement.getAttribute('data-excused') || 0)
+    };
     
     // Create the chart
     const ctx = chartElement.getContext('2d');
@@ -153,12 +155,20 @@ function renderAttendanceSummaryChart(chartElement) {
 // Render subject-wise attendance chart
 function renderSubjectAttendanceChart(chartElement) {
   // Get data from the data attribute
-  const chartDataStr = chartElement.getAttribute('data-stats');
-  if (!chartDataStr) return;
+  const chartDataStr = chartElement.getAttribute('data-stats') || chartElement.getAttribute('data-subjects');
+  if (!chartDataStr) {
+    console.warn('No data found for subject attendance chart');
+    return;
+  }
   
   try {
     const subjectStats = JSON.parse(chartDataStr);
     const subjectNames = Object.keys(subjectStats);
+    
+    if (subjectNames.length === 0) {
+      console.warn('No subjects found in the data');
+      return;
+    }
     
     const presentData = [];
     const absentData = [];
