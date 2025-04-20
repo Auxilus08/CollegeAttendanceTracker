@@ -29,14 +29,23 @@ def admin_required():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
+            # Check if user is authenticated via session
+            user_id = session.get('user_id')
+            user_role = session.get('user_role')
+            
+            if user_id and user_role == UserRole.ADMIN.value:
+                return fn(*args, **kwargs)
+                
+            # If not in session, try JWT
             try:
-                verify_jwt_in_request()
+                verify_jwt_in_request(optional=True)
                 claims = get_jwt()
-                if claims.get("role") == UserRole.ADMIN.value:
+                if claims and claims.get("role") == UserRole.ADMIN.value:
                     return fn(*args, **kwargs)
                 else:
                     return jsonify({"msg": "Admin access required"}), 403
             except Exception as e:
+                logger.error(f"Admin access error: {e}")
                 return redirect(url_for('login', next=request.url))
         return decorator
     return wrapper
@@ -45,14 +54,23 @@ def teacher_required():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
+            # Check if user is authenticated via session
+            user_id = session.get('user_id')
+            user_role = session.get('user_role')
+            
+            if user_id and user_role in [UserRole.ADMIN.value, UserRole.TEACHER.value]:
+                return fn(*args, **kwargs)
+                
+            # If not in session, try JWT
             try:
-                verify_jwt_in_request()
+                verify_jwt_in_request(optional=True)
                 claims = get_jwt()
-                if claims.get("role") in [UserRole.ADMIN.value, UserRole.TEACHER.value]:
+                if claims and claims.get("role") in [UserRole.ADMIN.value, UserRole.TEACHER.value]:
                     return fn(*args, **kwargs)
                 else:
                     return jsonify({"msg": "Teacher access required"}), 403
             except Exception as e:
+                logger.error(f"Teacher access error: {e}")
                 return redirect(url_for('login', next=request.url))
         return decorator
     return wrapper
@@ -61,27 +79,46 @@ def student_required():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
+            # Check if user is authenticated via session
+            user_id = session.get('user_id')
+            user_role = session.get('user_role')
+            
+            if user_id and user_role in [UserRole.ADMIN.value, UserRole.TEACHER.value, UserRole.STUDENT.value]:
+                return fn(*args, **kwargs)
+                
+            # If not in session, try JWT
             try:
-                verify_jwt_in_request()
+                verify_jwt_in_request(optional=True)
                 claims = get_jwt()
-                # Students can only view their own data
-                if claims.get("role") in [UserRole.ADMIN.value, UserRole.TEACHER.value, UserRole.STUDENT.value]:
+                if claims and claims.get("role") in [UserRole.ADMIN.value, UserRole.TEACHER.value, UserRole.STUDENT.value]:
                     return fn(*args, **kwargs)
                 else:
                     return jsonify({"msg": "Student access required"}), 403
             except Exception as e:
+                logger.error(f"Student access error: {e}")
                 return redirect(url_for('login', next=request.url))
         return decorator
     return wrapper
 
 def get_current_user():
-    try:
-        verify_jwt_in_request()
-        user_id = get_jwt_identity()
+    # First try using the session
+    user_id = session.get('user_id')
+    if user_id:
         user = User.query.get(user_id)
-        return user
+        if user:
+            return user
+            
+    # If session fails, try using JWT
+    try:
+        verify_jwt_in_request(optional=True)
+        user_id = get_jwt_identity()
+        if user_id:
+            user = User.query.get(user_id)
+            return user
     except Exception as e:
-        return None
+        logger.error(f"Error getting current user: {e}")
+        
+    return None
 
 def register_routes(app):
     # Add current date to all templates
