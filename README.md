@@ -40,7 +40,7 @@ A Flask-based web application for managing college attendance with role-based ac
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/CollegeAttendanceTracker.git
+git clone https://github.com/Auxilus08/CollegeAttendanceTracker.git
 cd CollegeAttendanceTracker
 ```
 
